@@ -1,6 +1,7 @@
 from hashlib import new
 from os import stat
 from queue import PriorityQueue
+from select import epoll
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -21,7 +22,7 @@ class Env(gym.Env):
             np.random.seed(33)
         self.action_space = spaces.Box(low=np.array([0, 0, 0]),
                                        high=np.array([self.pa.num_wq,
-                                                      self.pa.num_prio, self.pa.num_serv]),
+                                                      self.pa.num_prio - 1, self.pa.num_serv - 1]),
                                        dtype=np.uint8)
         # if repre == 'compact':
         # TODO complete here
@@ -54,15 +55,13 @@ class Env(gym.Env):
         done = False
         reward = 0
         info = None
-        print(type(action))
-        print('here')
         if action == self.pa.num_wq:             # Explicit void action
             status = 'MoveOn'
         elif self.job_slot.slot[action] is None:      # Implicit void action
             status = 'MoveOn'
         else:
             self.job_slot.slot[action].priority = priority
-            allocated = self.machine.allocate_job(self.job_slot[action],
+            allocated = self.machine.allocate_job(self.job_slot.slot[action],
                                                   server)
             status = 'Allocate' if allocated else 'MoveOn'
         if status == 'MoveOn':
@@ -77,7 +76,7 @@ class Env(gym.Env):
                     done = True
             elif self.end == "all_done":  # everything has to be finished
                 if self.seq_idx >= self.pa.simu_len and \
-                   len(self.machine.running_job) == 0 and \
+                   self.all_servers_empty() and \
                    all(s is None for s in self.job_slot.slot) and \
                    all(s is None for s in self.job_backlog.backlog):
                     done = True
@@ -89,25 +88,25 @@ class Env(gym.Env):
                 if self.seq_idx < self.pa.simu_len:
                     new_job = self.get_new_job_from_seq(self.seq_idx)
 
-                if new_job.len > 0:     # a new job comes
-                    to_backlog = True
+                    if new_job.len > 0:     # a new job comes
+                        to_backlog = True
 
-                    for i in range(self.pa.num_wq):
-                        if self.job_slot.slot[i] is None:
-                            self.job_slot.slot[i] = new_job
-                            self.job_record.record[new_job.id] = new_job
-                            to_backlog = False
-                            break
+                        for i in range(self.pa.num_wq):
+                            if self.job_slot.slot[i] is None:
+                                self.job_slot.slot[i] = new_job
+                                self.job_record.record[new_job.id] = new_job
+                                to_backlog = False
+                                break
 
-                    if to_backlog:
-                        if self.job_backlog.curr_size < self.pa.backlog_size:
-                            self.job_backlog.backlog[self.job_backlog.curr_size] = new_job
-                            self.job_backlog.curr_size += 1
-                            self.job_record.record[new_job.id] = new_job
-                        else:   # abort, backlog is full
-                            print("Backlog is full.")
+                        if to_backlog:
+                            if self.job_backlog.curr_size < self.pa.backlog_size:
+                                self.job_backlog.backlog[self.job_backlog.curr_size] = new_job
+                                self.job_backlog.curr_size += 1
+                                self.job_record.record[new_job.id] = new_job
+                            else:   # abort, backlog is full
+                                print("Backlog is full.")
 
-                    self.extra_info.new_job_comes()
+                        self.extra_info.new_job_comes()
             reward = self.get_reward()
         elif status == 'Allocate':
             self.job_record.record[self.job_slot.slot[action].id] = self.job_slot.slot[action]
@@ -138,6 +137,18 @@ class Env(gym.Env):
 
     def render(self):
         pass
+
+    def all_servers_empty(self):
+        """whether all servers are empty or not"""
+        empty = True
+        for dic in self.machine.running_jobs:
+            for k in dic:
+                if dic[k]:
+                    empty = False
+                    break
+            if not empty:
+                break
+        return empty
 
     def generate_work_sequence(self, simu_len):
         """
