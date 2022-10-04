@@ -5,7 +5,7 @@ import job_distribution
 class Parameters:
     def __init__(self) -> None:
 
-        self.simu_len = 10               # Simulation length
+        self.simu_len = 40               # Simulation length
         # Maximum episode length (terminate after)
         self.episode_max_length = 150
 
@@ -24,3 +24,8 @@ class Parameters:
         self.unseen = True             # seen or new examples
 
         self.work_dist = job_distribution.Dist(self.max_job_len)
+
+        self.hold_penalty = -1          # penalty for holding things in the new work screen
+        self.dismiss_penalty = -1       # penalty for missing a job because the queue is full
+        # penalty for delaying things in the current work screen
+        self.delay_penalty = -1
