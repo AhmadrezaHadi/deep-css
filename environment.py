@@ -2,6 +2,7 @@ from hashlib import new
 from os import stat
 from queue import PriorityQueue
 from select import epoll
+from tkinter.messagebox import NO
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -48,6 +49,9 @@ class Env(gym.Env):
         self.extra_info = ExtraInfo(pa)
 
     def step(self, a):
+        """
+        TODO complete here
+        """
         action = a[0]
         priority = a[1]
         server = a[2]
@@ -130,10 +134,30 @@ class Env(gym.Env):
         return ob, reward, done, information
 
     def get_reward(self):
-        pass
+        """
+        reward function for the environment
+        """
+        reward = 0
+        for serv in self.machine.running_jobs:
+            for k in serv:
+                for job in serv[k]:
+                    reward += self.pa.delay_penalty / float(job.len)
+
+        for job in self.job_slot.slot:
+            if job is not None:
+                reward += self.pa.hold_penalty / float(job.len)
+
+        for job in self.job_backlog.backlog:
+            if job is not None:
+                reward += self.pa.dismiss_penalty / float(job.len)
+
+        return reward
 
     def observe(self):
-        pass
+        if self.repre == "compact":
+            pass
+        if self.repre == "image":
+            pass
 
     def render(self):
         pass
@@ -169,7 +193,8 @@ class Env(gym.Env):
         return new_job
 
     def plot_state(self):
-        pass
+        plt.figure("screen", figsize=(20, 5))
+        # TODO complete here
 
     def reset(self):
         # return super().reset()
