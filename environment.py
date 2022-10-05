@@ -25,9 +25,12 @@ class Env(gym.Env):
                                        high=np.array([self.pa.num_wq,
                                                       self.pa.num_prio - 1, self.pa.num_serv - 1]),
                                        dtype=np.uint8)
-        # if repre == 'compact':
-        # TODO complete here
-        # self.observation_space = spaces.Box()
+        if repre == 'compact':
+            self.observation_space = spaces.Box(low=0,
+                                                high=self.pa.backlog_size,
+                                                shape=(self.pa.time_horizon * self.pa.num_serv +
+                                                       self.pa.num_wq + 2,),
+                                                dtype=np.int8)
 
         self.render = render
         self.repre = repre      # image or compact representation
@@ -84,10 +87,6 @@ class Env(gym.Env):
                    self.all_servers_empty() and \
                    all(s is None for s in self.job_slot.slot) and \
                    all(s is None for s in self.job_backlog.backlog):
-                    print("1: ", self.seq_idx >= self.pa.simu_len)
-                    print("2: ", self.all_servers_empty())
-                    print("3: ", all(s is None for s in self.job_slot.slot))
-                    print("4: ", all(s is None for s in self.job_backlog.backlog))
                     done = True
                 elif self.curr_time > self.pa.episode_max_length:  # run too long, force termination
                     print('here')
