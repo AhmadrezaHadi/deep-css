@@ -77,14 +77,20 @@ class Env(gym.Env):
             self.seq_idx += 1
             if self.end == 'no_new_job':
                 if self.seq_idx >= self.pa.simu_len:
+                    print('here')
                     done = True
             elif self.end == "all_done":  # everything has to be finished
                 if self.seq_idx >= self.pa.simu_len and \
                    self.all_servers_empty() and \
                    all(s is None for s in self.job_slot.slot) and \
                    all(s is None for s in self.job_backlog.backlog):
+                    print("1: ", self.seq_idx >= self.pa.simu_len)
+                    print("2: ", self.all_servers_empty())
+                    print("3: ", all(s is None for s in self.job_slot.slot))
+                    print("4: ", all(s is None for s in self.job_backlog.backlog))
                     done = True
                 elif self.curr_time > self.pa.episode_max_length:  # run too long, force termination
+                    print('here')
                     done = True
 
             if not done:
@@ -155,7 +161,43 @@ class Env(gym.Env):
 
     def observe(self):
         if self.repre == "compact":
-            pass
+            compact_repre = np.zeros((self.pa.time_horizon * self.pa.num_serv) +     # servers
+                                     self.pa.num_wq +                                # work queue
+                                     2,                                              # backlog and extra info indicator
+                                     dtype=np.int8)
+            running_jobs = self.machine.running_jobs
+            job_slot = self.job_slot.slot
+            backlog_curr_size = self.job_backlog.curr_size
+            backlog_size = self.pa.backlog_size
+            extra_info = self.extra_info.time_since_last_new_job
+
+            work_queue = np.zeros((self.pa.num_wq, 1), dtype=np.int8)
+            servers = np.zeros(
+                (self.pa.time_horizon, self.pa.num_serv), dtype=np.int8)
+
+            for idx, serv in enumerate(running_jobs):
+                ptr = 0
+                for key in serv:
+                    p_len = 0
+                    for job in serv[key]:
+                        job: Job
+                        p_len += job.remaining_time
+                    servers[ptr:ptr+p_len, idx] += (key+1)
+                    ptr += p_len
+
+            for idx, job in enumerate(job_slot):
+                if job is not None:
+                    work_queue[idx] = job.len
+            ptr = 0
+            servers = servers.flatten('F')
+            work_queue = work_queue.flatten()
+            compact_repre[ptr: servers.shape[0]] = servers
+            ptr += servers.shape[0]
+            compact_repre[ptr: ptr+work_queue.shape[0]] = work_queue
+            ptr += work_queue.shape[0]
+            compact_repre[ptr] = backlog_curr_size
+            compact_repre[ptr+1] = extra_info
+            return compact_repre
         if self.repre == "image":
             pass
 
@@ -239,7 +281,7 @@ class Job:
         self.start_time = -1
         self.finish_time = -1
         self.priority = -1
-        self.remaining_time = -1
+        self.remaining_time = job_len
 
     def __str__(self) -> str:
         return f"id={self.id}, len={self.len}, enter_time={self.enter_time}, prio={self.priority}, remain={self.remaining_time}"
@@ -321,7 +363,6 @@ class Machine:
                     # check if the job is scheduled yet
                     if job.start_time == -1:
                         job.start_time = prev_time
-                        job.remaining_time = job.len
                     # decrease the remaining time
                     if job.remaining_time > 0:
                         job.remaining_time -= 1
