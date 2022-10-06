@@ -1,14 +1,7 @@
-from hashlib import new
-from os import stat
-from queue import PriorityQueue
-from select import epoll
-from tkinter.messagebox import NO
 import numpy as np
-import math
 import matplotlib.pyplot as plt
 import gym
 from gym import spaces
-import parameters
 
 
 class Env(gym.Env):
@@ -24,7 +17,7 @@ class Env(gym.Env):
         self.action_space = spaces.Box(low=np.array([0, 0, 0]),
                                        high=np.array([self.pa.num_wq,
                                                       self.pa.num_prio - 1, self.pa.num_serv - 1]),
-                                       dtype=np.uint8)
+                                       dtype=np.int32)
         if repre == 'compact':
             self.observation_space = spaces.Box(low=0,
                                                 high=self.pa.backlog_size,
