@@ -14,10 +14,13 @@ class Env(gym.Env):
         self.pa = pa
         if not self.pa.unseen:
             np.random.seed(33)
-        self.action_space = spaces.Box(low=np.array([0, 0, 0]),
-                                       high=np.array([self.pa.num_wq,
-                                                      self.pa.num_prio - 1, self.pa.num_serv - 1]),
-                                       dtype=np.int32)
+        # self.action_space = spaces.Box(low=np.array([0, 0, 0]),
+        #                                high=np.array([self.pa.num_wq,
+        #                                               self.pa.num_prio - 1, self.pa.num_serv - 1]),
+        #                                dtype=np.int32)
+        self.action_space = spaces.MultiDiscrete([self.pa.num_wq + 1,
+                                                  self.pa.num_prio,
+                                                  self.pa.num_serv])
         if repre == 'compact':
             self.observation_space = spaces.Box(low=0,
                                                 high=self.pa.backlog_size,
