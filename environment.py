@@ -13,11 +13,7 @@ class Env(gym.Env):
 
         self.pa = pa
         if not self.pa.unseen:
-            np.random.seed(33)
-        # self.action_space = spaces.Box(low=np.array([0, 0, 0]),
-        #                                high=np.array([self.pa.num_wq,
-        #                                               self.pa.num_prio - 1, self.pa.num_serv - 1]),
-        #                                dtype=np.int32)
+            np.random.seed(66)
         self.action_space = spaces.MultiDiscrete([self.pa.num_wq + 1,
                                                   self.pa.num_prio,
                                                   self.pa.num_serv])
@@ -76,7 +72,6 @@ class Env(gym.Env):
             self.seq_idx += 1
             if self.end == 'no_new_job':
                 if self.seq_idx >= self.pa.simu_len:
-                    print('here')
                     done = True
             elif self.end == "all_done":  # everything has to be finished
                 if self.seq_idx >= self.pa.simu_len and \
@@ -85,7 +80,6 @@ class Env(gym.Env):
                    all(s is None for s in self.job_backlog.backlog):
                     done = True
                 elif self.curr_time > self.pa.episode_max_length:  # run too long, force termination
-                    print('here')
                     done = True
 
             if not done:
@@ -239,7 +233,7 @@ class Env(gym.Env):
         self.curr_time = 0
 
         if not self.pa.unseen:
-            np.random.seed(33)
+            np.random.seed(66)
 
         self.work_len_seqs = self.generate_work_sequence(
             simu_len=self.pa.simu_len)
