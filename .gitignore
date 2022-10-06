@@ -137,3 +137,7 @@ test.py
 Pipfile
 Pipfile.lock
 test.ipynb
+logs/
+models/
+tensorboard/
+tmp/
