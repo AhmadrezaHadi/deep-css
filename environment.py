@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import gym
@@ -224,7 +225,27 @@ class Env(gym.Env):
         return new_job
 
     def plot_state(self):
-        plt.figure("screen", figsize=(20, 5))
+        # plt.figure("screen", figsize=(20, 5))
+        os.system('clear')
+        for idx, serv in enumerate(self.machine.running_jobs):
+            print(f"server no.: {idx}")
+            for k in serv:
+                print(f"\tpriority: {k}")
+                for job in serv[k]:
+                    if job is not None:
+                        print(f"\t\tJob ID: ", job.id, end='')
+                        print(f"\tRemaining Time: ", job.remaining_time)
+        for job in self.job_slot.slot:
+            job: Job
+            if job is not None:
+                print("Job ID: ", job.id, end='')
+                print(f"\tJob Length: ", job.remaining_time)
+            else:
+                print("None")
+
+        print("current backlog size: ", self.job_backlog.curr_size)
+        print("time since last new job: ",
+              self.extra_info.time_since_last_new_job)
         # TODO complete here
 
     def reset(self):
