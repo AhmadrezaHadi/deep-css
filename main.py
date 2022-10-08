@@ -51,12 +51,6 @@ def eval_model(model, env, iters):
             while True:
                 if m == 'Random':
                     action = env.action_space.sample()
-                # elif m == 'SJF':
-                    # for _ in range(5):
-                    # obs = env.step(5)
-                    # action = SJF(env)
-                    # continue
-                    # break
                 else:
                     action, _states = model.predict(obs, deterministic=True)
                 obs, rewards, done, info = env.step(action)
@@ -93,7 +87,7 @@ if __name__ == '__main__':
         else:
             MODEL_NAME = args.name
         checkpoint_callback = CheckpointCallback(save_freq=20000,
-                                                 save_path=f'./models/{args.algorithm}_256neurons_8layer_2',
+                                                 save_path=f'./models/{args.algorithm}_256neurons_8layer_3',
                                                  name_prefix=f'{args.algorithm}')
         eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
                                      log_path='./logs/', eval_freq=500, deterministic=True, render=False)
@@ -108,9 +102,8 @@ if __name__ == '__main__':
             try:
                 print("training")
                 model.learn(TIMESTEPS, callback=callbacks,
-                            tb_log_name=f'{args.algorithm}_distinct_policy_net_256_8layer_2')
+                            tb_log_name=f'{args.algorithm}_distinct_policy_net_256_8layer_3')
             except:
-                # model.save_replay_buffer('tmp/last_model.pkl')
                 model.save('tmp/last_model')
                 print(f"model trained using {args.algorithm} algorithm")
         elif args.algorithm == 'dqn':
