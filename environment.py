@@ -215,8 +215,9 @@ class Env(gym.Env):
         """
         work_len_seq = []
         size = 0
+        max_difference = 5
         while True:
-            if (simu_len - size) < 5:
+            if (simu_len - size) < max_difference:
                 cnt = simu_len - size
             else:
                 cnt = int(np.random.normal(self.pa.new_job_cnt_mean,

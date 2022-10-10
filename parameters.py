@@ -5,8 +5,8 @@ import job_distribution
 class Parameters:
     def __init__(self) -> None:
 
-        self.simu_len = 30              # Simulation length
-        self.episode_max_length = 450   # Maximum episode length
+        self.simu_len = 50              # Simulation length
+        self.episode_max_length = 750   # Maximum episode length
 
         self.num_serv = 3               # Number of servers
         self.num_wq = 10                # Number of works in the visible queue
