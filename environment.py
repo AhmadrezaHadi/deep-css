@@ -9,7 +9,7 @@ class Env(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, pa, render=False,
-                 repre='compact', end='all_done', seen=False) -> None:
+                 repre='compact', end='all_done') -> None:
         super(Env, self).__init__()
 
         self.pa = pa
@@ -35,6 +35,8 @@ class Env(gym.Env):
         # work sequence
         self.work_len_seqs = self.generate_work_sequence(
             simu_len=self.pa.simu_len)
+        self.work_len_seqs.insert(0, [])
+        self.env_len = len(self.work_len_seqs)
 
         self.seq_idx = 0
         # Initialize System
@@ -72,10 +74,10 @@ class Env(gym.Env):
             # add new jobs
             self.seq_idx += 1
             if self.end == 'no_new_job':
-                if self.seq_idx >= self.pa.simu_len:
+                if self.seq_idx >= self.env_len:
                     done = True
             elif self.end == "all_done":  # everything has to be finished
-                if self.seq_idx >= self.pa.simu_len and \
+                if self.seq_idx >= self.env_len and \
                    self.all_servers_empty() and \
                    all(s is None for s in self.job_slot.slot) and \
                    all(s is None for s in self.job_backlog.backlog):
@@ -85,26 +87,27 @@ class Env(gym.Env):
 
             if not done:
 
-                if self.seq_idx < self.pa.simu_len:
-                    new_job = self.get_new_job_from_seq(self.seq_idx)
+                if self.seq_idx < self.env_len:
+                    new_jobs = self.get_new_job_from_seq(self.seq_idx)
 
-                    if new_job.len > 0:     # a new job comes
+                    for job in new_jobs:     # a new job comes
                         to_backlog = True
 
                         for i in range(self.pa.num_wq):
                             if self.job_slot.slot[i] is None:
-                                self.job_slot.slot[i] = new_job
-                                self.job_record.record[new_job.id] = new_job
+                                self.job_slot.slot[i] = job
+                                # self.job_record.record[new_job.id] = new_job
                                 to_backlog = False
                                 break
 
                         if to_backlog:
                             if self.job_backlog.curr_size < self.pa.backlog_size:
-                                self.job_backlog.backlog[self.job_backlog.curr_size] = new_job
+                                self.job_backlog.backlog[self.job_backlog.curr_size] = job
                                 self.job_backlog.curr_size += 1
-                                self.job_record.record[new_job.id] = new_job
+                                # self.job_record.record[new_job.id] = new_job
                             else:   # abort, backlog is full
                                 print("Backlog is full.")
+                                del self.job_record.record[job.id]
 
                         self.extra_info.new_job_comes()
             reward = self.get_reward()
@@ -210,19 +213,36 @@ class Env(gym.Env):
         """
         generates a sequence of works
         """
-        work_len_seq = np.zeros(simu_len, dtype=np.int8)
-
-        for i in range(simu_len):
-            if np.random.rand() < self.pa.new_job_rate:
-                work_len_seq[i] = self.work_dist()
+        work_len_seq = []
+        size = 0
+        while True:
+            if (simu_len - size) < 5:
+                cnt = simu_len - size
+            else:
+                cnt = int(np.random.normal(self.pa.new_job_cnt_mean,
+                                           self.pa.new_job_cnt_std))
+            if cnt < 1 or cnt > self.pa.max_job_cnt:
+                continue
+            size += cnt
+            work = []
+            for _ in range(cnt):
+                if np.random.rand() < self.pa.new_job_rate:
+                    work.append(self.work_dist())
+            work_len_seq.append(work)
+            if size == simu_len:
+                break
 
         return work_len_seq
 
     def get_new_job_from_seq(self, seq_index):
-        new_job = Job(job_id=len(self.job_record.record),
-                      job_len=self.work_len_seqs[seq_index],
-                      enter_time=self.curr_time)
-        return new_job
+        jobs = []
+        for l in self.work_len_seqs[seq_index]:
+            new_job = Job(job_id=len(self.job_record.record),
+                          job_len=l,
+                          enter_time=self.curr_time)
+            self.job_record.record[new_job.id] = new_job
+            jobs.append(new_job)
+        return jobs
 
     def plot_state(self):
         # plt.figure("screen", figsize=(20, 5))
@@ -249,7 +269,6 @@ class Env(gym.Env):
         # TODO complete here
 
     def reset(self):
-        # return super().reset()
         self.seq_idx = 0
         self.curr_time = 0
 
@@ -258,6 +277,8 @@ class Env(gym.Env):
 
         self.work_len_seqs = self.generate_work_sequence(
             simu_len=self.pa.simu_len)
+        self.work_len_seqs.insert(0, [])
+        self.env_len = len(self.work_len_seqs)
 
         # initialize system
         self.machine = Machine(self.pa)
