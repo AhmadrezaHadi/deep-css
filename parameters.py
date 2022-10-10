@@ -19,6 +19,9 @@ class Parameters:
         self.max_track_since_new = 10   # Track how many timesteps since last new job
 
         self.new_job_rate = 0.7         # lambda in new job arrival Poisson Process
+        self.new_job_cnt_mean = 2       # mean for new job count
+        self.new_job_cnt_std = 1        # standard deviation for new jobs count
+        self.max_job_cnt = 5            # max num of jobs in one timestep
 
         self.unseen = True              # seen or new examples
 
