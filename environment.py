@@ -215,14 +215,14 @@ class Env(gym.Env):
         """
         work_len_seq = []
         size = 0
-        max_difference = 5
+        max_difference = self.pa.max_job_cnt
         while True:
             if (simu_len - size) < max_difference:
                 cnt = simu_len - size
             else:
                 cnt = int(np.random.normal(self.pa.new_job_cnt_mean,
                                            self.pa.new_job_cnt_std))
-            if cnt < 1 or cnt > self.pa.max_job_cnt:
+            if cnt < 1 or cnt > max_difference:
                 continue
             size += cnt
             work = []
