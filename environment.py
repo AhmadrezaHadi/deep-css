@@ -24,7 +24,7 @@ class Env(gym.Env):
                                                 high=self.pa.backlog_size,
                                                 shape=(self.pa.time_horizon * self.pa.num_serv +
                                                        self.pa.num_wq + 2,),
-                                                dtype=np.int8)
+                                                dtype=np.float64)
 
         self.render = render
         self.repre = repre      # image or compact representation
@@ -158,30 +158,29 @@ class Env(gym.Env):
             compact_repre = np.zeros((self.pa.time_horizon * self.pa.num_serv) +     # servers
                                      self.pa.num_wq +                                # work queue
                                      2,                                              # backlog and extra info indicator
-                                     dtype=np.int8)
+                                     dtype=np.float64)
             running_jobs = self.machine.running_jobs
             job_slot = self.job_slot.slot
             backlog_curr_size = self.job_backlog.curr_size
             backlog_size = self.pa.backlog_size
             extra_info = self.extra_info.time_since_last_new_job
 
-            work_queue = np.zeros((self.pa.num_wq, 1), dtype=np.int8)
+            work_queue = np.zeros((self.pa.num_wq, 1), dtype=np.float64)
             servers = np.zeros(
-                (self.pa.time_horizon, self.pa.num_serv), dtype=np.int8)
+                (self.pa.time_horizon, self.pa.num_serv), dtype=np.float64)
 
             for idx, serv in enumerate(running_jobs):
                 ptr = 0
                 for key in serv:
                     p_len = 0
                     for job in serv[key]:
-                        job: Job
                         p_len += job.remaining_time
-                    servers[ptr:ptr+p_len, idx] += (key+1)
+                    servers[ptr:ptr+p_len, idx] += (key+1) / self.pa.num_prio
                     ptr += p_len
 
             for idx, job in enumerate(job_slot):
                 if job is not None:
-                    work_queue[idx] = job.len
+                    work_queue[idx] = job.len / self.pa.max_job_len
             ptr = 0
             servers = servers.flatten('F')
             work_queue = work_queue.flatten()
@@ -189,8 +188,9 @@ class Env(gym.Env):
             ptr += servers.shape[0]
             compact_repre[ptr: ptr+work_queue.shape[0]] = work_queue
             ptr += work_queue.shape[0]
-            compact_repre[ptr] = backlog_curr_size
-            compact_repre[ptr+1] = extra_info
+            compact_repre[ptr] = backlog_curr_size / backlog_size
+            compact_repre[ptr+1] = extra_info / \
+                self.extra_info.max_tracking_time_since_last_job
             return compact_repre
         if self.repre == "image":
             pass
