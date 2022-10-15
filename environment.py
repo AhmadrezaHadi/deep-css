@@ -9,12 +9,13 @@ class Env(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self, pa, render=False,
-                 repre='compact', end='all_done') -> None:
+                 repre='compact', end='all_done', seed=33) -> None:
         super(Env, self).__init__()
 
         self.pa = pa
+        self.seed = seed
         if not self.pa.unseen:
-            np.random.seed(66)
+            np.random.seed(self.seed)
         self.action_space = spaces.MultiDiscrete([self.pa.num_wq + 1,
                                                   self.pa.num_prio,
                                                   self.pa.num_serv])
@@ -274,7 +275,7 @@ class Env(gym.Env):
         self.curr_time = 0
 
         if not self.pa.unseen:
-            np.random.seed(66)
+            np.random.seed(self.seed)
 
         self.work_len_seqs = self.generate_work_sequence(
             simu_len=self.pa.simu_len)
