@@ -1,13 +1,17 @@
+from typing import Callable
 import argparse
 from cmath import inf
 from stable_baselines3 import PPO, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from environment import Env
 from parameters import Parameters
 from utils import calculate_average_slowdown, SJF
+import gym
 
 #####################################################################################
 ##########################            Arguments            ##########################
@@ -40,6 +44,39 @@ REPRE = args.representation
 UNSEEN = args.unseen
 
 
+def linear_schedule(initial_value: float, final_value: float) -> Callable[[float], float]:
+    """
+    Linear learning rate schedule.
+
+    :param initial_value: Initial learning rate.
+    :return: schedule that computes
+      current learning rate depending on remaining progress
+    """
+    def func(progress_remaining: float) -> float:
+        """
+        Progress will decrease from 1 (beginning) to 0.
+
+        :param progress_remaining:
+        :return: current learning rate
+        """
+        if progress_remaining > 0.25:
+            return progress_remaining * initial_value
+        else:
+            return final_value
+
+    return func
+
+
+def make_env(pa, seed=None) -> Callable:
+    def _init() -> gym.Env:
+        if seed is not None:
+            env = Monitor(Env(pa, seed=seed))
+        else:
+            env = Env(pa)
+        return env
+    return _init
+
+
 def eval_model(model, env, iters):
     methods = ['Random', 'Model Algorithm']
     random_mean = 0
@@ -66,14 +103,19 @@ def eval_model(model, env, iters):
 
 if __name__ == '__main__':
     pa = Parameters()
-    env = Env(pa)
-    env.reset()
+    # env = Env(pa)
+    # env.reset()
+    envs = SubprocVecEnv([make_env(pa) for _ in range(4)])
 
     eval_pa = Parameters()
     eval_pa.unseen = UNSEEN
-    eval_env = Env(eval_pa)
+    # eval_env = Monitor(Env(eval_pa))
+    eval_envs = []
+    for seed in [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]:
+        eval_envs.append(make_env(eval_pa, seed=seed))
+    eval_envs = SubprocVecEnv(eval_envs)
 
-    net = [256, 256, 256, 256, 256, 256, 256, 256]
+    net = [256, 256, 256, 256, 256, 256, 256, 256, 256, 256]
     policy_kwargs = {
         "net_arch": [{
             "vf": net,
@@ -86,26 +128,28 @@ if __name__ == '__main__':
             raise "Please set a name for training model"
         else:
             MODEL_NAME = args.name
-        checkpoint_callback = CheckpointCallback(save_freq=20000,
-                                                 save_path=f'./models/{args.algorithm}_256neurons_8layer_3',
+        checkpoint_callback = CheckpointCallback(save_freq=10_000,
+                                                 save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
                                                  name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
-                                     log_path='./logs/', eval_freq=500, deterministic=True, render=False)
+        eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
+                                     log_path='./logs/', eval_freq=5_000, deterministic=True, render=False)
         callbacks = CallbackList([checkpoint_callback, eval_callback])
 
         if args.algorithm == 'ppo':
             print('creating model')
-            model = PPO('MlpPolicy', env,
-                        tensorboard_log='./tensorboard/', device='auto', policy_kwargs=policy_kwargs)
+            model = PPO('MlpPolicy', envs,
+                        tensorboard_log='./tensorboard/', device='auto',
+                        policy_kwargs=policy_kwargs, batch_size=1024)
             if args.load:
-                model = model.load(args.load, env)
+                print(f"loading model from: {args.load}")
+                model = model.load(args.load, envs)
             try:
                 print("training")
                 model.learn(TIMESTEPS, callback=callbacks,
-                            tb_log_name=f'{args.algorithm}_distinct_policy_net_256_8layer_3')
+                            tb_log_name=f'{args.algorithm}_{MODEL_NAME}')
             except:
                 model.save('tmp/last_model')
-                print(f"model trained using {args.algorithm} algorithm")
+                print(f"model trained using {args.algorithm} algorithm.")
         elif args.algorithm == 'dqn':
             pass
 
