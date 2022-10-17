@@ -140,3 +140,4 @@ test.ipynb
 models/
 tmp/
 tensorboard/
+logs/
