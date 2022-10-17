@@ -126,7 +126,8 @@ if __name__ == '__main__':
     if args.module == 'sb3':
         if args.mode == 'train':
             if not args.name:
-                raise "Please set a name for training model"
+                print("Please set a name for training model")
+                exit(0)
             else:
                 MODEL_NAME = args.name
             checkpoint_callback = CheckpointCallback(save_freq=5_000,
@@ -159,9 +160,10 @@ if __name__ == '__main__':
     if args.mode == 'eval':
         if args.algorithm == 'ppo':
             if not args.load:
-                raise "model path not specified (--load model_path)"
-            eval_env.reset()
-            model = PPO('MlpPolicy', eval_env).load(args.load, eval_env)
-            eval_model(model, eval_env, args.iters)
+                print("model path not specified (--load model_path)")
+                exit(0)
+            # eval_env.reset()
+            # model = PPO('MlpPolicy', eval_env).load(args.load, eval_env)
+            # eval_model(model, eval_env, args.iters)
         elif args.algorithm == 'dqn':
             pass
