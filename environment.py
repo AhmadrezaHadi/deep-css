@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 from gym import spaces
+from parameters import Parameters
 
 
 class Env(gym.Env):
@@ -155,7 +156,9 @@ class Env(gym.Env):
 
     def observe(self):
         if self.repre == "compact":
-            compact_repre = np.zeros((self.pa.time_horizon * self.pa.num_serv) +     # servers
+            compact_repre = np.zeros((self.pa.time_horizon * self.pa.num_serv) +     # servers - works
+                                     # servers - priorities
+                                     (self.pa.time_horizon * self.pa.num_serv) +
                                      self.pa.num_wq +                                # work queue
                                      2,                                              # backlog and extra info indicator
                                      dtype=np.float64)
@@ -165,27 +168,32 @@ class Env(gym.Env):
             backlog_size = self.pa.backlog_size
             extra_info = self.extra_info.time_since_last_new_job
 
-            work_queue = np.zeros((self.pa.num_wq, 1), dtype=np.float64)
-            servers = np.zeros(
-                (self.pa.time_horizon, self.pa.num_serv), dtype=np.float64)
+            work_queue = np.zeros((self.pa.num_wq, 1),
+                                  dtype=np.float64)
+            srv_works = np.zeros((self.pa.time_horizon, self.pa.num_serv),
+                                 dtype=np.float64)
+            srv_prios = np.zeros((self.pa.time_horizon, self.pa.num_serv),
+                                 dtype=np.float64)
 
             for idx, serv in enumerate(running_jobs):
-                ptr = 0
                 for key in serv:
-                    p_len = 0
-                    for job in serv[key]:
-                        p_len += job.remaining_time
-                    servers[ptr:ptr+p_len, idx] += (key+1) / self.pa.num_prio
-                    ptr += p_len
+                    for ptr, job in enumerate(serv[key]):
+                        srv_works[ptr, idx] += job.remaining_time / \
+                            self.pa.max_job_len
+                        srv_prios[ptr, idx] += (job.priority+1) / \
+                            self.pa.num_prio
 
             for idx, job in enumerate(job_slot):
                 if job is not None:
                     work_queue[idx] = job.len / self.pa.max_job_len
             ptr = 0
-            servers = servers.flatten('F')
+            srv_works = srv_works.flatten('F')
+            srv_prios = srv_prios.flatten('F')
             work_queue = work_queue.flatten()
-            compact_repre[ptr: servers.shape[0]] = servers
-            ptr += servers.shape[0]
+            compact_repre[ptr: srv_works.shape[0]] = srv_works
+            ptr += srv_works.shape[0]
+            compact_repre[ptr: ptr+srv_prios.shape[0]] = srv_prios
+            ptr += srv_prios.shape[0]
             compact_repre[ptr: ptr+work_queue.shape[0]] = work_queue
             ptr += work_queue.shape[0]
             compact_repre[ptr] = backlog_curr_size / backlog_size
