@@ -121,13 +121,7 @@ if __name__ == '__main__':
         eval_envs.append(make_env(eval_pa, seed=seed))
     eval_envs = SubprocVecEnv(eval_envs)
 
-    net = [256, 256, 256, 256, 256, 256, 256, 256, 256, 256]
-    policy_kwargs = {
-        "net_arch": [{
-            "vf": net,
-            "pi": net
-        }]
-    }
+    policy_kwargs = pa.policy_kwargs
 
     if args.module == 'sb3':
         if args.mode == 'train':
@@ -135,18 +129,18 @@ if __name__ == '__main__':
                 raise "Please set a name for training model"
             else:
                 MODEL_NAME = args.name
-            checkpoint_callback = CheckpointCallback(save_freq=10_000,
+            checkpoint_callback = CheckpointCallback(save_freq=5_000,
                                                      save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
                                                      name_prefix=f'{args.algorithm}')
             eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
-                                         log_path='./logs/', eval_freq=5_000, deterministic=True, render=False)
+                                         log_path='./logs/', eval_freq=2_500, deterministic=True, render=False)
             callbacks = CallbackList([checkpoint_callback, eval_callback])
 
             if args.algorithm == 'ppo':
                 print('creating model')
                 model = PPO('MlpPolicy', envs,
                             tensorboard_log='./tensorboard/', device='auto',
-                            policy_kwargs=policy_kwargs, batch_size=1024)
+                            policy_kwargs=policy_kwargs)
                 if args.load:
                     print(f"loading model from: {args.load}")
                     model = model.load(args.load, envs)
