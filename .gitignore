@@ -139,3 +139,5 @@ Pipfile.lock
 test.ipynb
 models/
 tmp/
+logs/
+tensorboard/
