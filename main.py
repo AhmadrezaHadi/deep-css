@@ -1,3 +1,4 @@
+from ast import arg
 from typing import Callable
 import argparse
 from cmath import inf
@@ -17,6 +18,8 @@ import gym
 ##########################            Arguments            ##########################
 #####################################################################################
 parser = argparse.ArgumentParser(description="")
+parser.add_argument("module", choices=['rllib', 'sb3'],
+                    help="module for implementing the algorithm.")
 parser.add_argument("mode", choices=['train', 'eval'],
                     help="Train or Eval model")
 parser.add_argument("algorithm", choices=['ppo', 'dqn'],
@@ -35,6 +38,8 @@ parser.add_argument("-n", "--name", type=str,
                     help="name for the training model")
 parser.add_argument("-u", "--unseen", type=bool, default=False,
                     help="Whether to set a fixed or random seed for evaluation.")
+parser.add_argument("-c", "--cpu", default=4, type=int,
+                    help="Number of cpus, for multiprocessing the learnign process")
 
 args = parser.parse_args()
 
@@ -42,6 +47,7 @@ RENDER = args.render
 TIMESTEPS = args.timesteps
 REPRE = args.representation
 UNSEEN = args.unseen
+CPU = args.cpu
 
 
 def linear_schedule(initial_value: float, final_value: float) -> Callable[[float], float]:
@@ -105,7 +111,7 @@ if __name__ == '__main__':
     pa = Parameters()
     # env = Env(pa)
     # env.reset()
-    envs = SubprocVecEnv([make_env(pa) for _ in range(4)])
+    envs = SubprocVecEnv([make_env(pa) for _ in range(CPU)])
 
     eval_pa = Parameters()
     eval_pa.unseen = UNSEEN
@@ -123,35 +129,38 @@ if __name__ == '__main__':
         }]
     }
 
-    if args.mode == 'train':
-        if not args.name:
-            raise "Please set a name for training model"
-        else:
-            MODEL_NAME = args.name
-        checkpoint_callback = CheckpointCallback(save_freq=10_000,
-                                                 save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
-                                                 name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
-                                     log_path='./logs/', eval_freq=5_000, deterministic=True, render=False)
-        callbacks = CallbackList([checkpoint_callback, eval_callback])
+    if args.module == 'sb3':
+        if args.mode == 'train':
+            if not args.name:
+                raise "Please set a name for training model"
+            else:
+                MODEL_NAME = args.name
+            checkpoint_callback = CheckpointCallback(save_freq=10_000,
+                                                     save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
+                                                     name_prefix=f'{args.algorithm}')
+            eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
+                                         log_path='./logs/', eval_freq=5_000, deterministic=True, render=False)
+            callbacks = CallbackList([checkpoint_callback, eval_callback])
 
-        if args.algorithm == 'ppo':
-            print('creating model')
-            model = PPO('MlpPolicy', envs,
-                        tensorboard_log='./tensorboard/', device='auto',
-                        policy_kwargs=policy_kwargs, batch_size=1024)
-            if args.load:
-                print(f"loading model from: {args.load}")
-                model = model.load(args.load, envs)
-            try:
-                print("training")
-                model.learn(TIMESTEPS, callback=callbacks,
-                            tb_log_name=f'{args.algorithm}_{MODEL_NAME}')
-            except:
-                model.save('tmp/last_model')
-                print(f"model trained using {args.algorithm} algorithm.")
-        elif args.algorithm == 'dqn':
-            pass
+            if args.algorithm == 'ppo':
+                print('creating model')
+                model = PPO('MlpPolicy', envs,
+                            tensorboard_log='./tensorboard/', device='auto',
+                            policy_kwargs=policy_kwargs, batch_size=1024)
+                if args.load:
+                    print(f"loading model from: {args.load}")
+                    model = model.load(args.load, envs)
+                try:
+                    print("training")
+                    model.learn(TIMESTEPS, callback=callbacks,
+                                tb_log_name=f'{args.algorithm}_{MODEL_NAME}')
+                except:
+                    model.save('tmp/last_model')
+                    print(f"model trained using {args.algorithm} algorithm.")
+            elif args.algorithm == 'dqn':
+                pass
+    elif args.module == 'rllib':
+        pass
 
     if args.mode == 'eval':
         if args.algorithm == 'ppo':
