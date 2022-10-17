@@ -30,3 +30,12 @@ class Parameters:
         self.hold_penalty = -1         # penalty for holding things in the new work screen
         self.dismiss_penalty = -1      # penalty for missing a job because the queue is full
         self.delay_penalty = -1        # penalty for delaying things in the current work screen
+
+        self.vf_net = [256, 256, 256, 512, 512, 256, 256, 256]
+        self.pi_net = [256, 256, 512, 1024, 1024, 512, 256, 256, 256]
+        self.policy_kwargs = {
+            "net_arch": [{
+                "vf": self.vf_net,
+                "pi": self.pi_net
+            }]
+        }
