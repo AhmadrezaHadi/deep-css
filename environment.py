@@ -22,8 +22,9 @@ class Env(gym.Env):
                                                   self.pa.num_serv])
         if repre == 'compact':
             self.observation_space = spaces.Box(low=0,
-                                                high=self.pa.backlog_size,
+                                                high=1,
                                                 shape=(self.pa.time_horizon * self.pa.num_serv +
+                                                       self.pa.time_horizon * self.pa.num_serv +
                                                        self.pa.num_wq + 2,),
                                                 dtype=np.float64)
 
