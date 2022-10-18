@@ -21,7 +21,7 @@ class Parameters:
         self.new_job_rate = 0.8         # lambda in new job arrival Poisson Process
         self.new_job_cnt_mean = 2       # mean for new job count
         self.new_job_cnt_std = 1        # standard deviation for new jobs count
-        self.max_job_cnt = 6            # max num of jobs in one timestep
+        self.max_job_cnt = 3            # max num of jobs in one timestep
 
         self.unseen = False              # seen or new examples
 

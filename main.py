@@ -1,7 +1,5 @@
-from ast import arg
 from typing import Callable
 import argparse
-from cmath import inf
 from stable_baselines3 import PPO, DQN
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -111,7 +109,7 @@ if __name__ == '__main__':
     pa = Parameters()
     # env = Env(pa)
     # env.reset()
-    envs = SubprocVecEnv([make_env(pa) for _ in range(CPU)])
+    envs = DummyVecEnv([make_env(pa) for _ in range(CPU)])
 
     eval_pa = Parameters()
     eval_pa.unseen = UNSEEN
@@ -119,7 +117,7 @@ if __name__ == '__main__':
     eval_envs = []
     for seed in [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]:
         eval_envs.append(make_env(eval_pa, seed=seed))
-    eval_envs = SubprocVecEnv(eval_envs)
+    eval_envs = DummyVecEnv(eval_envs)
 
     policy_kwargs = pa.policy_kwargs
 
