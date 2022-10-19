@@ -1,23 +1,24 @@
 from typing import Callable
 import argparse
-from stable_baselines3 import PPO, DQN
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
+from stable_baselines3.ppo.ppo import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
-from environment import Env
-from parameters import Parameters
-from utils import calculate_average_slowdown, SJF
+from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
+from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
+# from utils import calculate_average_slowdown, SJF
+from gym_env.env.environment import Env
+from gym_env.env.parameters import Parameters
 import gym
+import gym_env
 
 #####################################################################################
 ##########################            Arguments            ##########################
 #####################################################################################
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("module", choices=['rllib', 'sb3'],
-                    help="module for implementing the algorithm.")
+# parser.add_argument("module", choices=['rllib', 'sb3'],
+#                     help="module for implementing the algorithm.")
 parser.add_argument("mode", choices=['train', 'eval'],
                     help="Train or Eval model")
 parser.add_argument("algorithm", choices=['ppo', 'dqn'],
@@ -71,16 +72,6 @@ def linear_schedule(initial_value: float, final_value: float) -> Callable[[float
     return func
 
 
-def make_env(pa, seed=None) -> Callable:
-    def _init() -> gym.Env:
-        if seed is not None:
-            env = Monitor(Env(pa, seed=seed))
-        else:
-            env = Env(pa)
-        return env
-    return _init
-
-
 def eval_model(model, env, iters):
     methods = ['Random', 'Model Algorithm']
     random_mean = 0
@@ -109,51 +100,51 @@ if __name__ == '__main__':
     pa = Parameters()
     # env = Env(pa)
     # env.reset()
-    envs = DummyVecEnv([make_env(pa) for _ in range(CPU)])
-
+    # envs = DummyVecEnv([make_env(pa) for _ in range(CPU)])
+    envs = make_vec_env('deepcss-v0', n_envs=CPU)
     eval_pa = Parameters()
     eval_pa.unseen = UNSEEN
     # eval_env = Monitor(Env(eval_pa))
-    eval_envs = []
-    for seed in [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]:
-        eval_envs.append(make_env(eval_pa, seed=seed))
-    eval_envs = DummyVecEnv(eval_envs)
+    # eval_envs
+    # eval_envs = []
+    # for seed in [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]:
+    #     eval_envs.append(make_env(eval_pa, seed=seed))
+    # eval_envs = DummyVecEnv(eval_envs)
+    eval_kwargs = {"pa": eval_pa}
+    eval_env = make_vec_env('deepcss-v0', 1, seed=33, env_kwargs=eval_kwargs)
 
     policy_kwargs = pa.policy_kwargs
 
-    if args.module == 'sb3':
-        if args.mode == 'train':
-            if not args.name:
-                print("Please set a name for training model")
-                exit(0)
-            else:
-                MODEL_NAME = args.name
-            checkpoint_callback = CheckpointCallback(save_freq=5_000,
-                                                     save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
-                                                     name_prefix=f'{args.algorithm}')
-            eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
-                                         log_path='./logs/', eval_freq=2_500, deterministic=True, render=False)
-            callbacks = CallbackList([checkpoint_callback, eval_callback])
+    if args.mode == 'train':
+        if not args.name:
+            print("Please set a name for training model")
+            exit(0)
+        else:
+            MODEL_NAME = args.name
+        checkpoint_callback = CheckpointCallback(save_freq=5_000,
+                                                 save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
+                                                 name_prefix=f'{args.algorithm}')
+        eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
+                                     log_path='./logs/', eval_freq=2_500, deterministic=True, render=False)
+        callbacks = CallbackList([checkpoint_callback, eval_callback])
 
-            if args.algorithm == 'ppo':
-                print('creating model')
-                model = PPO('MlpPolicy', envs,
-                            tensorboard_log='./tensorboard/', device='auto',
-                            policy_kwargs=policy_kwargs)
-                if args.load:
-                    print(f"loading model from: {args.load}")
-                    model = model.load(args.load, envs)
-                try:
-                    print("training")
-                    model.learn(TIMESTEPS, callback=callbacks,
-                                tb_log_name=f'{args.algorithm}_{MODEL_NAME}')
-                except:
-                    model.save('tmp/last_model')
-                    print(f"model trained using {args.algorithm} algorithm.")
-            elif args.algorithm == 'dqn':
-                pass
-    elif args.module == 'rllib':
-        pass
+        if args.algorithm == 'ppo':
+            print('creating model')
+            model = PPO('MlpPolicy', envs,
+                        tensorboard_log='./tensorboard/', device='cuda:0',
+                        policy_kwargs=policy_kwargs)
+            if args.load:
+                print(f"loading model from: {args.load}")
+                model = model.load(args.load, envs)
+            try:
+                print("training")
+                model.learn(TIMESTEPS, callback=callbacks,
+                            tb_log_name=f'{args.algorithm}_{MODEL_NAME}')
+            except:
+                model.save('tmp/last_model')
+                print(f"model trained using {args.algorithm} algorithm.")
+        elif args.algorithm == 'dqn':
+            pass
 
     if args.mode == 'eval':
         if args.algorithm == 'ppo':
