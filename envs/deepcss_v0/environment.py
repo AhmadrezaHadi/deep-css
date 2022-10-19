@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 from gym import spaces
-from parameters import Parameters
+from .parameters import Parameters
 
 
 class Env(gym.Env):
@@ -14,9 +14,9 @@ class Env(gym.Env):
         super(Env, self).__init__()
 
         self.pa = pa
-        self.seed = seed
+        self.env_seed = seed
         if not self.pa.unseen:
-            np.random.seed(self.seed)
+            np.random.seed(self.env_seed)
         self.action_space = spaces.MultiDiscrete([self.pa.num_wq + 1,
                                                   self.pa.num_prio,
                                                   self.pa.num_serv])
@@ -28,7 +28,7 @@ class Env(gym.Env):
                                                        self.pa.num_wq + 2,),
                                                 dtype=np.float64)
 
-        self.render = render
+        self.env_render = render
         self.repre = repre      # image or compact representation
         self.end = end          # termination type, 'no_new_job' or 'all_done'
 
@@ -128,7 +128,7 @@ class Env(gym.Env):
         ob = self.observe()
         info = self.job_record
 
-        if self.render:
+        if self.env_render:
             self.plot_state()
 
         information = {}
@@ -284,7 +284,7 @@ class Env(gym.Env):
         self.curr_time = 0
 
         if not self.pa.unseen:
-            np.random.seed(self.seed)
+            np.random.seed(self.env_seed)
 
         self.work_len_seqs = self.generate_work_sequence(
             simu_len=self.pa.simu_len)
