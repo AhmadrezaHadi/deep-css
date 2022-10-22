@@ -1,17 +1,18 @@
+from re import sub
 from typing import Callable
 import argparse
-from stable_baselines3.ppo.ppo import PPO
+from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
-from stable_baselines3.common.vec_env.dummy_vec_env import DummyVecEnv
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
-# from utils import calculate_average_slowdown, SJF
-from gym_env.env.environment import Env
-from gym_env.env.parameters import Parameters
+from utils import calculate_average_slowdown, SJF, make_env
+from envs.deepcss_v0.environment import Env
+from envs.deepcss_v0.environment import Parameters
 import gym
-import gym_env
+import envs
 
 #####################################################################################
 ##########################            Arguments            ##########################
@@ -48,70 +49,19 @@ REPRE = args.representation
 UNSEEN = args.unseen
 CPU = args.cpu
 
-
-def linear_schedule(initial_value: float, final_value: float) -> Callable[[float], float]:
-    """
-    Linear learning rate schedule.
-
-    :param initial_value: Initial learning rate.
-    :return: schedule that computes
-      current learning rate depending on remaining progress
-    """
-    def func(progress_remaining: float) -> float:
-        """
-        Progress will decrease from 1 (beginning) to 0.
-
-        :param progress_remaining:
-        :return: current learning rate
-        """
-        if progress_remaining > 0.25:
-            return progress_remaining * initial_value
-        else:
-            return final_value
-
-    return func
-
-
-def eval_model(model, env, iters):
-    methods = ['Random', 'Model Algorithm']
-    random_mean = 0
-    ml_mean = 0
-    ITERS = iters
-    for _ in range(ITERS):
-        for m in methods:
-            obs = env.reset()
-            while True:
-                if m == 'Random':
-                    action = env.action_space.sample()
-                else:
-                    action, _states = model.predict(obs, deterministic=True)
-                obs, rewards, done, info = env.step(action)
-                if done:
-                    if m == 'Random':
-                        random_mean += calculate_average_slowdown(info)
-                    else:
-                        ml_mean += calculate_average_slowdown(info)
-                    break
-    print(f"Random: {random_mean/ITERS :.2f}")
-    print(f"Model: {ml_mean/ITERS : .2f}")
-
-
 if __name__ == '__main__':
     pa = Parameters()
-    # env = Env(pa)
-    # env.reset()
-    # envs = DummyVecEnv([make_env(pa) for _ in range(CPU)])
-    envs = make_vec_env('deepcss-v0', n_envs=CPU)
-    eval_pa = Parameters()
-    eval_pa.unseen = UNSEEN
-    # eval_env = Monitor(Env(eval_pa))
-    # eval_envs
-    # eval_envs = []
-    # for seed in [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]:
-    #     eval_envs.append(make_env(eval_pa, seed=seed))
-    # eval_envs = DummyVecEnv(eval_envs)
-    eval_kwargs = {"pa": eval_pa}
-    eval_env = make_vec_env('deepcss-v0', 1, seed=33, env_kwargs=eval_kwargs)
+
+    # envs = make_vec_env('deepcss-v0', n_envs=CPU, vec_env_cls=SubprocVecEnv)
+    env = gym.make('deepcss-v0')
+
+    eval_envs = []
+    for seed in pa.eval_seeds:
+        eval_envs.append(make_env(seed=seed))
+    eval_envs = DummyVecEnv(eval_envs)
+
+    # eval_kwargs = {"pa": eval_pa}
+    # eval_env = make_vec_env('deepcss-v0', 1, seed=33, env_kwargs=eval_kwargs)
 
     policy_kwargs = pa.policy_kwargs
 
@@ -124,18 +74,18 @@ if __name__ == '__main__':
         checkpoint_callback = CheckpointCallback(save_freq=5_000,
                                                  save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
                                                  name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(eval_env, best_model_save_path='./logs/',
+        eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
                                      log_path='./logs/', eval_freq=2_500, deterministic=True, render=False)
         callbacks = CallbackList([checkpoint_callback, eval_callback])
 
         if args.algorithm == 'ppo':
             print('creating model')
-            model = PPO('MlpPolicy', envs,
+            model = PPO('MlpPolicy', env,
                         tensorboard_log='./tensorboard/', device='cuda:0',
                         policy_kwargs=policy_kwargs)
             if args.load:
                 print(f"loading model from: {args.load}")
-                model = model.load(args.load, envs)
+                model = model.load(args.load, env)
             try:
                 print("training")
                 model.learn(TIMESTEPS, callback=callbacks,
