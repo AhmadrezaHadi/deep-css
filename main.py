@@ -1,18 +1,16 @@
-from re import sub
-from typing import Callable
+import gym
+from torch import clip
+import envs
 import argparse
-from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.monitor import Monitor
+from stable_baselines3 import PPO
+
 from utils import calculate_average_slowdown, SJF, make_env
-from envs.deepcss_v0.environment import Env
 from envs.deepcss_v0.environment import Parameters
-import gym
-import envs
 
 #####################################################################################
 ##########################            Arguments            ##########################
@@ -40,6 +38,8 @@ parser.add_argument("-u", "--unseen", type=bool, default=False,
                     help="Whether to set a fixed or random seed for evaluation.")
 parser.add_argument("-c", "--cpu", default=4, type=int,
                     help="Number of cpus, for multiprocessing the learnign process")
+parser.add_argument("-cr", "--cliprange", default=0.2, type=float,
+                    help="Clip range parameter for ppo model")
 
 args = parser.parse_args()
 
@@ -48,6 +48,7 @@ TIMESTEPS = args.timesteps
 REPRE = args.representation
 UNSEEN = args.unseen
 CPU = args.cpu
+CLIP_FN = get_schedule_fn(args.cliprange)
 
 if __name__ == '__main__':
     pa = Parameters()
@@ -81,11 +82,12 @@ if __name__ == '__main__':
         if args.algorithm == 'ppo':
             print('creating model')
             model = PPO('MlpPolicy', env,
-                        tensorboard_log='./tensorboard/', device='cuda:0',
-                        policy_kwargs=policy_kwargs)
+                        tensorboard_log='./tensorboard/', device='auto',
+                        clip_range=CLIP_FN, policy_kwargs=policy_kwargs)
             if args.load:
                 print(f"loading model from: {args.load}")
                 model = model.load(args.load, env)
+                model.clip_range = CLIP_FN
             try:
                 print("training")
                 model.learn(TIMESTEPS, callback=callbacks,
@@ -93,6 +95,7 @@ if __name__ == '__main__':
             except:
                 model.save('tmp/last_model')
                 print(f"model trained using {args.algorithm} algorithm.")
+                exit(0)
         elif args.algorithm == 'dqn':
             pass
 
