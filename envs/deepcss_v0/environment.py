@@ -227,7 +227,7 @@ class Env(gym.Env):
         size = 0
         max_difference = self.pa.max_job_cnt
         while True:
-            if (simu_len - size) < max_difference:
+            if (simu_len - size) <= max_difference:
                 cnt = simu_len - size
             else:
                 cnt = int(np.random.normal(self.pa.new_job_cnt_mean,

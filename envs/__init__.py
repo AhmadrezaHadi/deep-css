@@ -7,7 +7,7 @@ kwargs = {"pa": pa}
 
 register(
     id='deepcss-v0',
-    entry_point='gym_env.env.environment:Env',
+    entry_point='envs.deepcss_v0.environment:Env',
     max_episode_steps=pa.episode_max_length,
     kwargs=kwargs
 )
