@@ -1,7 +1,7 @@
-from cmath import inf
 from typing import Callable
 from envs.deepcss_v0.environment import Job, Env
 from envs.deepcss_v0.parameters import Parameters
+from stable_baselines3.common.monitor import Monitor
 
 
 def calculate_average_slowdown(info):
@@ -51,7 +51,6 @@ def linear_schedule(initial_value: float, final_value: float) -> Callable[[float
     return func
 
 
-
 def eval_model(model, env, iters):
     methods = ['Random', 'Model Algorithm']
     random_mean = 0
@@ -79,8 +78,9 @@ def eval_model(model, env, iters):
 def make_env(seed):
     pa = Parameters()
     pa.unseen = False
+
     def _init():
-        env = Env(pa, seed=seed)
+        env = Monitor(Env(pa, seed=seed))
         return env
-    
+
     return _init
