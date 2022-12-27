@@ -8,9 +8,9 @@ class Parameters:
         self.simu_len = 20              # Simulation length
         self.episode_max_length = 100   # Maximum episode length
 
-        self.num_serv = 2               # Number of servers
+        self.num_serv = 3               # Number of servers
         self.num_wq = 10                # Number of works in the visible queue
-        self.num_prio = 2               # Number of different priorities in queue
+        self.num_prio = 3               # Number of different priorities in queue
 
         self.time_horizon = 20          # Number of timesteps in the graph
         self.max_job_len = 15           # Maximum duration of new job
@@ -21,7 +21,7 @@ class Parameters:
         self.new_job_rate = 0.8         # lambda in new job arrival Poisson Process
         self.new_job_cnt_mean = 3       # mean for new job count
         self.new_job_cnt_std = 2        # standard deviation for new jobs count
-        self.max_job_cnt = 5            # max num of jobs in one timestep
+        self.max_job_cnt = 5            # max number of jobs in one timestep
 
         self.unseen = True              # seen or new examples
 
