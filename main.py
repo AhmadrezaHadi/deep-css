@@ -41,8 +41,8 @@ def main():
         checkpoint_callback = CheckpointCallback(save_freq=5_000,
                                                  save_path=f'./models/{MODEL_NAME}_{args.algorithm}',
                                                  name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(vec_envs, best_model_save_path='./logs/{MODEL_NAME}/',
-                                     log_path='./logs/{MODEL_NAME}/', eval_freq=2_500, deterministic=True, render=False)
+        eval_callback = EvalCallback(vec_envs, best_model_save_path=f'./logs/{MODEL_NAME}/',
+                                     log_path=f'./logs/{MODEL_NAME}/', eval_freq=2_500, deterministic=True, render=False)
         callbacks = CallbackList([checkpoint_callback, eval_callback])
 
         if args.algorithm == 'ppo':
@@ -59,7 +59,7 @@ def main():
                 model.learn(TIMESTEPS, callback=callbacks,
                             tb_log_name=f'{MODEL_NAME}_{args.algorithm}')
             except:
-                model.save('tmp/last_model')
+                model.save(f'tmp/{MODEL_NAME}')
                 print(f"model trained using {args.algorithm} algorithm.")
                 exit(0)
         elif args.algorithm == 'dqn':
