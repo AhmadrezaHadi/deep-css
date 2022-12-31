@@ -30,5 +30,8 @@ def arg_parser():
                         help="Number of priorities in each server.")
     parser.add_argument("-ns", "--numserv", default=3, type=int,
                         help="Number of servers in the environment.")
+    parser.add_argument("-bs", "--batchsize", default=64,
+                        type=int, help="Mini-batch size for learning process.")
+    # parser.add_argument("-")
 
     return parser.parse_args()
