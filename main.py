@@ -1,7 +1,5 @@
 import gym
-from torch import clip
 import envs
-import argparse
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
@@ -10,61 +8,35 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3 import PPO
 
 from utils import calculate_average_slowdown, SJF, make_env
+from arg_loader import arg_parser
 from envs.deepcss_v0.environment import Parameters
 
-#####################################################################################
-##########################            Arguments            ##########################
-#####################################################################################
-parser = argparse.ArgumentParser(description="")
-# parser.add_argument("module", choices=['rllib', 'sb3'],
-#                     help="module for implementing the algorithm.")
-parser.add_argument("mode", choices=['train', 'eval'],
-                    help="Train or Eval model")
-parser.add_argument("algorithm", choices=['ppo', 'dqn'],
-                    help="algorithm for training")
-parser.add_argument("-t", "--timesteps", default=10_000_000, type=int,
-                    help="Timesteps for training")
-parser.add_argument("-r", "--render", default=False, type=bool,
-                    help="Render the output of environment or not")
-parser.add_argument("-re", "--representation", default='compact', type=str,
-                    help='state returned from the environment (compact or image).')
-parser.add_argument("-l", "--load", type=str,
-                    help="model path to load")
-parser.add_argument("-i", "--iters", type=int, default=1,
-                    help="iterations for evaluation")
-parser.add_argument("-n", "--name", type=str,
-                    help="name for the training model")
-parser.add_argument("-u", "--unseen", type=bool, default=False,
-                    help="Whether to set a fixed or random seed for evaluation.")
-parser.add_argument("-c", "--cpu", default=4, type=int,
-                    help="Number of cpus, for multiprocessing the learnign process")
-parser.add_argument("-cr", "--cliprange", default=0.2, type=float,
-                    help="Clip range parameter for ppo model")
 
-args = parser.parse_args()
-
-RENDER = args.render
-TIMESTEPS = args.timesteps
-REPRE = args.representation
-UNSEEN = args.unseen
-CPU = args.cpu
-CLIP_FN = get_schedule_fn(args.cliprange)
-
-if __name__ == '__main__':
-    pa = Parameters()
-
-    # envs = make_vec_env('deepcss-v0', n_envs=CPU, vec_env_cls=SubprocVecEnv)
-    env = gym.make('deepcss-v0')
-
+def make_eval_envs(pa):
     eval_envs = []
     for seed in pa.eval_seeds:
         eval_envs.append(make_env(seed=seed))
     eval_envs = DummyVecEnv(eval_envs)
+    return eval_envs
 
-    # eval_kwargs = {"pa": eval_pa}
-    # eval_env = make_vec_env('deepcss-v0', 1, seed=33, env_kwargs=eval_kwargs)
 
-    policy_kwargs = pa.policy_kwargs
+def main():
+    args = arg_parser()
+    ENV_ID = 'deepcss-v0'
+    TIMESTEPS = args.timesteps
+    CPU = args.cpu
+    CLIP_FN = get_schedule_fn(args.cliprange)
+
+    vec_envs = make_vec_env(ENV_ID, n_envs=CPU)
+
+    vf_net = [128, 256, 128, 64]
+    pi_net = [128, 256, 128, 64]
+    policy_kwargs = {
+        "net_arch": [{
+            "vf": vf_net,
+            "pi": pi_net
+        }]
+    }
 
     if args.mode == 'train':
         if not args.name:
@@ -75,18 +47,18 @@ if __name__ == '__main__':
         checkpoint_callback = CheckpointCallback(save_freq=5_000,
                                                  save_path=f'./models/{args.algorithm}_{MODEL_NAME}',
                                                  name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(eval_envs, best_model_save_path='./logs/',
+        eval_callback = EvalCallback(vec_envs, best_model_save_path='./logs/',
                                      log_path='./logs/', eval_freq=2_500, deterministic=True, render=False)
         callbacks = CallbackList([checkpoint_callback, eval_callback])
 
         if args.algorithm == 'ppo':
             print('creating model')
-            model = PPO('MlpPolicy', env,
+            model = PPO('MlpPolicy', vec_envs, batch_size=args.batchsize,
                         tensorboard_log='./tensorboard/', device='auto',
                         clip_range=CLIP_FN, policy_kwargs=policy_kwargs)
             if args.load:
                 print(f"loading model from: {args.load}")
-                model = model.load(args.load, env)
+                model = model.load(args.load, vec_envs)
                 model.clip_range = CLIP_FN
             try:
                 print("training")
@@ -109,3 +81,7 @@ if __name__ == '__main__':
             # eval_model(model, eval_env, args.iters)
         elif args.algorithm == 'dqn':
             pass
+
+
+if __name__ == '__main__':
+    main()
