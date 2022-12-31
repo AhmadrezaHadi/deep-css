@@ -32,6 +32,7 @@ def arg_parser():
                         help="Number of servers in the environment.")
     parser.add_argument("-bs", "--batchsize", default=64,
                         type=int, help="Mini-batch size for learning process.")
-    # parser.add_argument("-")
+    parser.add_argument("-e", "--environment", default='deepcss-v0',
+                        type=str, help="Environment ID for the training process.")
 
     return parser.parse_args()
