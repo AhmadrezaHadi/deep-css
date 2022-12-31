@@ -14,6 +14,7 @@ class Parameters:
 
         self.time_horizon = 20          # Number of timesteps in the graph
         self.max_job_len = 15           # Maximum duration of new job
+        self.min_server_size = 7        # Minimum available slots for the initial state
 
         self.backlog_size = 60          # Backlog queue size
         self.max_track_since_new = 10   # Track how many timesteps since last new job
@@ -33,8 +34,8 @@ class Parameters:
 
         self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
 
-        self.vf_net = [256, 512, 1024, 512, 256, 128, 64]
-        self.pi_net = [256, 512, 1024, 512, 256, 128, 64]
+        self.vf_net = [128, 128, 128]
+        self.pi_net = [128, 128, 128]
         self.policy_kwargs = {
             "net_arch": [{
                 "vf": self.vf_net,

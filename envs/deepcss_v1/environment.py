@@ -44,9 +44,9 @@ class Env(gym.Env):
         self.seq_idx = 0
         # Initialize System
         self.machine = Machine(pa)
+        self.job_record = self.machine.fill_up_servers()
         self.job_slot = JobSlot(pa)
         self.job_backlog = JobBacklog(pa)
-        self.job_record = JobRecord()
         self.extra_info = ExtraInfo(pa)
 
     def step(self, a):
@@ -89,7 +89,6 @@ class Env(gym.Env):
                     done = True
 
             if not done:
-
                 if self.seq_idx < self.env_len:
                     new_jobs = self.get_new_job_from_seq(self.seq_idx)
 
@@ -256,7 +255,6 @@ class Env(gym.Env):
         return jobs
 
     def plot_state(self):
-        # plt.figure("screen", figsize=(20, 5))
         os.system('clear')
         for idx, serv in enumerate(self.machine.running_jobs):
             print(f"server no.: {idx}")
@@ -293,9 +291,9 @@ class Env(gym.Env):
 
         # initialize system
         self.machine = Machine(self.pa)
+        self.job_record = self.machine.fill_up_servers()
         self.job_slot = JobSlot(self.pa)
         self.job_backlog = JobBacklog(self.pa)
-        self.job_record = JobRecord()
         self.extra_info = ExtraInfo(self.pa)
 
         return self.observe()
@@ -358,9 +356,12 @@ class JobRecord:
 
 
 class Machine:
-    def __init__(self, pa) -> None:
+    def __init__(self, pa: Parameters) -> None:
         self.num_serv = pa.num_serv
         self.time_horizon = pa.time_horizon
+        self.min_serv_size = pa.min_server_size
+        self.num_prio = pa.num_prio
+        self.work_dist = pa.work_dist.bi_model_dist
 
         # free slots in each server
         self.avlbl_slots = np.array(
@@ -370,6 +371,24 @@ class Machine:
                               for prio in range(pa.num_prio)} for _ in range(self.num_serv)]
 
         # TODO Graphical Repre
+
+    def fill_up_servers(self):
+        """
+        Fills the servers with jobs having random priorities and lengths for initial state of the environment.
+        returns servers state dictionary.
+        """
+        job_record = JobRecord()
+        for idx in range(self.num_serv):
+            while self.avlbl_slots[idx] > self.min_serv_size:
+                prio = np.random.randint(0, self.num_prio)
+                work_len = self.work_dist()
+                new_job = Job(job_id=len(job_record.record),
+                              job_len=work_len,
+                              enter_time=0)  # initial state of the environment, thus enter_time = 0
+                job_record.record[new_job.id] = new_job
+                self.avlbl_slots[idx] -= work_len
+                self.running_jobs[idx][prio].append(new_job)
+        return job_record
 
     def allocate_job(self, job: Job, num_serv):
         """
