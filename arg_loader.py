@@ -8,7 +8,7 @@ def arg_parser():
                         help="Train or Eval model")
     parser.add_argument("algorithm", choices=['ppo', 'dqn'],
                         help="algorithm for training")
-    parser.add_argument("-t", "--timesteps", default=10_000_000, type=int,
+    parser.add_argument("-t", "--timesteps", default=50_000_000, type=int,
                         help="Timesteps for training")
     parser.add_argument("-r", "--render", default=False, type=bool,
                         help="Render the output of environment or not")
@@ -22,7 +22,7 @@ def arg_parser():
                         help="name for the training model")
     parser.add_argument("-u", "--unseen", type=bool, default=False,
                         help="Whether to set a fixed or random seed for evaluation.")
-    parser.add_argument("-c", "--cpu", default=4, type=int,
+    parser.add_argument("-c", "--cpu", default=2, type=int,
                         help="Number of cpus, for multiprocessing the learnign process")
     parser.add_argument("-cr", "--cliprange", default=0.2, type=float,
                         help="Clip range parameter for ppo model")
