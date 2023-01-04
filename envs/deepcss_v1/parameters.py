@@ -6,7 +6,7 @@ class Parameters:
     def __init__(self) -> None:
 
         self.simu_len = 20              # Simulation length
-        self.episode_max_length = 100   # Maximum episode length
+        self.episode_max_length = 150   # Maximum episode length
 
         self.num_serv = 3               # Number of servers
         self.num_wq = 10                # Number of works in the visible queue
@@ -34,8 +34,8 @@ class Parameters:
 
         self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
 
-        self.vf_net = [128, 128, 128]
-        self.pi_net = [128, 128, 128]
+        self.vf_net = [256, 256, 256, 256]
+        self.pi_net = [256, 256, 256, 256]
         self.policy_kwargs = {
             "net_arch": [{
                 "vf": self.vf_net,
