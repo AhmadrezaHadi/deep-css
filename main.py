@@ -29,8 +29,10 @@ def main():
     CLIP_FN = get_schedule_fn(args.cliprange)
 
     vec_envs = make_vec_env(ENV_ID, n_envs=CPU)
-
-    policy_kwargs = V1_PA().policy_kwargs
+    if ENV_ID == 'deepcss-v0':
+        policy_kwargs = V0_PA().policy_kwargs
+    elif ENV_ID == 'deepcss-v1':
+        policy_kwargs = V1_PA().policy_kwargs
 
     if args.mode == 'train':
         if not args.name:
@@ -55,7 +57,7 @@ def main():
                 model = model.load(args.load, vec_envs)
                 model.clip_range = CLIP_FN
             try:
-                print("training")
+                print(f"training on {model.device}")
                 model.learn(TIMESTEPS, callback=callbacks,
                             tb_log_name=f'{MODEL_NAME}_{args.algorithm}')
             except:
