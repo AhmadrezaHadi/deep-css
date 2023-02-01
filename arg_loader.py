@@ -8,7 +8,7 @@ def arg_parser():
                         help="Train or Eval model")
     parser.add_argument("algorithm", choices=['ppo', 'dqn'],
                         help="algorithm for training")
-    parser.add_argument("-t", "--timesteps", default=50_000_000, type=int,
+    parser.add_argument("-t", "--timesteps", default=150_000_000, type=int,
                         help="Timesteps for training")
     parser.add_argument("-r", "--render", default=False, type=bool,
                         help="Render the output of environment or not")
