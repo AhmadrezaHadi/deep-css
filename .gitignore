@@ -137,6 +137,7 @@ test.py
 Pipfile
 Pipfile.lock
 test.ipynb
+env_test.ipynb
 models/
 tmp/
 tensorboard/
