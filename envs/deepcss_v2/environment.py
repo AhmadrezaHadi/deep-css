@@ -33,7 +33,7 @@ class Env(gym.Env):
         self.end = end          # termination type, 'no_new_job' or 'all_done'
 
         self.curr_time = 0
-        self.work_dist = self.pa.work_dist.bi_model_dist
+        self.work_dist = self.pa.work_dist.exp_model_dist
 
         # work sequence
         self.work_len_seqs = self.generate_work_sequence(
@@ -224,23 +224,12 @@ class Env(gym.Env):
         """
         work_len_seq = []
         size = 0
-        max_difference = self.pa.max_job_cnt
-        while True:
-            if (simu_len - size) <= max_difference:
-                cnt = simu_len - size
-            else:
-                cnt = int(np.random.normal(self.pa.new_job_cnt_mean,
-                                           self.pa.new_job_cnt_std))
-            if cnt < 1 or cnt > max_difference:
+        while size < simu_len:
+            cnt = np.random.poisson(self.pa.lamda)
+            if cnt + size > simu_len:
                 continue
             size += cnt
-            work = []
-            for _ in range(cnt):
-                if np.random.rand() < self.pa.new_job_rate:
-                    work.append(self.work_dist())
-            work_len_seq.append(work)
-            if size == simu_len:
-                break
+            work_len_seq.append([self.work_dist() for _ in range(cnt)])
 
         return work_len_seq
 
@@ -359,7 +348,8 @@ class Machine:
     def __init__(self, pa: Parameters) -> None:
         self.num_serv = pa.num_serv
         self.time_horizon = pa.time_horizon
-        self.min_serv_size = pa.min_server_size
+        self.min_congestion = pa.min_server_congestion
+        self.max_congestion = pa.max_server_congestion
         self.num_prio = pa.num_prio
         self.work_dist = pa.work_dist.bi_model_dist
 
@@ -379,9 +369,15 @@ class Machine:
         """
         job_record = JobRecord()
         for idx in range(self.num_serv):
-            while self.avlbl_slots[idx] > self.min_serv_size:
-                prio = np.random.randint(0, self.num_prio)
+            congestion = np.random.randint(
+                self.min_congestion, self.max_congestion + 1)
+            avlbl_slots = self.time_horizon - congestion
+
+            while self.avlbl_slots[idx] > avlbl_slots:
                 work_len = self.work_dist()
+                if self.avlbl_slots[idx] - work_len < avlbl_slots:
+                    continue
+                prio = np.random.randint(0, self.num_prio)
                 new_job = Job(job_id=len(job_record.record),
                               job_len=work_len,
                               enter_time=0)  # initial state of the environment, thus enter_time = 0

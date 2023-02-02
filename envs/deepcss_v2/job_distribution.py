@@ -6,13 +6,15 @@ class Dist:
     def __init__(self, max_job_len):
         self.max_job_len = max_job_len
 
+        # bi model params
         self.job_small_chance = 0.8
-
         self.job_len_big_lower = max_job_len * 2 / 3
         self.job_len_big_upper = max_job_len
-
         self.job_len_small_lower = 1
         self.job_len_small_upper = max_job_len / 5
+
+        # exp model params
+        self.scale = 5
 
     def normal_dist(self):
         # TODO complete here
@@ -29,3 +31,9 @@ class Dist:
                                        self.job_len_big_upper + 1)
 
         return nw_len
+
+    def exp_model_dist(self):
+        while True:
+            work_len = np.ceil(np.random.exponential(self.scale)).astype(int)
+            if work_len <= self.max_job_len:
+                return work_len
