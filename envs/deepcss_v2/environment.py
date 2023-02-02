@@ -351,7 +351,7 @@ class Machine:
         self.min_congestion = pa.min_server_congestion
         self.max_congestion = pa.max_server_congestion
         self.num_prio = pa.num_prio
-        self.work_dist = pa.work_dist.bi_model_dist
+        self.work_dist = pa.work_dist.exp_model_dist
 
         # free slots in each server
         self.avlbl_slots = np.array(
