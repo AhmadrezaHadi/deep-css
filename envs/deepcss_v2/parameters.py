@@ -35,8 +35,8 @@ class Parameters:
 
         self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
 
-        self.vf_net = [256, 256, 256, 256]
-        self.pi_net = [256, 256, 256, 256]
+        self.vf_net = [512, 512, 512, 512]
+        self.pi_net = [512, 512, 512, 512]
         self.policy_kwargs = {
             "net_arch": [{
                 "vf": self.vf_net,
