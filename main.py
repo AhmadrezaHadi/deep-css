@@ -30,6 +30,7 @@ def main():
     CLIP_FN = get_schedule_fn(args.cliprange)
 
     vec_envs = make_vec_env(ENV_ID, n_envs=CPU)
+    eval_envs = make_vec_env(ENV_ID, n_envs=10)
     if ENV_ID == 'deepcss-v0':
         policy_kwargs = V0_PA().policy_kwargs
     elif ENV_ID == 'deepcss-v1':
@@ -49,7 +50,7 @@ def main():
         checkpoint_callback = CheckpointCallback(save_freq=5_000,
                                                  save_path=f'./models/{MODEL_NAME}_{args.algorithm}',
                                                  name_prefix=f'{args.algorithm}')
-        eval_callback = EvalCallback(vec_envs, best_model_save_path=f'./logs/{MODEL_NAME}/',
+        eval_callback = EvalCallback(eval_envs, best_model_save_path=f'./logs/{MODEL_NAME}/',
                                      log_path=f'./logs/{MODEL_NAME}/', eval_freq=2_500, deterministic=True, render=False)
         callbacks = CallbackList([checkpoint_callback, eval_callback])
 
