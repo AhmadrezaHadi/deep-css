@@ -348,10 +348,11 @@ class Machine:
     def __init__(self, pa: Parameters) -> None:
         self.num_serv = pa.num_serv
         self.time_horizon = pa.time_horizon
-        self.min_congestion = pa.min_server_congestion
-        self.max_congestion = pa.max_server_congestion
+        self.crowded_p = pa.crowded_p
+        self.min_crowded = pa.min_crowded_congestion
+        self.max_crowded = pa.max_crowded_congestion
+        self.max_uncrowded = pa.max_uncrowded_congestion
         self.num_prio = pa.num_prio
-        self.work_dist = pa.work_dist.exp_model_dist
 
         # free slots in each server
         self.avlbl_slots = np.array(
@@ -368,13 +369,23 @@ class Machine:
         returns servers state dictionary.
         """
         job_record = JobRecord()
+        crowded = False
         for idx in range(self.num_serv):
-            congestion = np.random.randint(
-                self.min_congestion, self.max_congestion + 1)
+            if np.random.random() < self.crowded_p:
+                # crowded
+                crowded = True
+                congestion = np.random.randint(
+                    self.min_crowded, self.max_crowded + 1)
+            else:
+                # uncrowded
+                congestion = np.random.randint(0, self.max_uncrowded + 1)
+
             avlbl_slots = self.time_horizon - congestion
 
             while self.avlbl_slots[idx] > avlbl_slots:
-                work_len = self.work_dist()
+                work_len = \
+                    np.random.randint(1, self.max_crowded) if crowded \
+                    else np.random.randint(1, self.max_uncrowded)
                 if self.avlbl_slots[idx] - work_len < avlbl_slots:
                     continue
                 prio = np.random.randint(0, self.num_prio)

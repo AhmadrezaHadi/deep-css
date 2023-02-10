@@ -15,8 +15,6 @@ class Parameters:
 
         self.time_horizon = 20              # Number of timesteps in the graph
         self.max_job_len = 15               # Maximum duration of new job
-        self.min_server_congestion = 5      # Minimum available slots for the initial state
-        self.max_server_congestion = 15     # Max congestion for initial state of server
 
         self.backlog_size = 60              # Backlog queue size
         self.max_track_since_new = 10       # Track how many timesteps since last new job
@@ -33,7 +31,21 @@ class Parameters:
         self.dismiss_penalty = -1      # penalty for missing a job because the queue is full
         self.delay_penalty = -1        # penalty for delaying things in the current work screen
 
-        self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
+        # Initial state (congestion) of the server params
+        # ----------------------------
+        # ----------------------------
+        # probability of a server being crowded
+        self.crowded_p = 0.1
+        # maximum traffic of jobs in a crowded server
+        self.max_crowded_congestion = 15
+        # minimum traffic of jobs in a crowded server
+        self.min_crowded_congestion = 10
+        # maxmimum traffic of jobs in an uncrowded server
+        self.max_uncrowded_congestion = 5
+        # ----------------------------
+        # ----------------------------
+
+        # self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
 
         self.vf_net = [128, 128, 128, 128]
         self.pi_net = [128, 128, 128, 128]
