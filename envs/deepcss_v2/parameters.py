@@ -35,7 +35,7 @@ class Parameters:
         # ----------------------------
         # ----------------------------
         # probability of a server being crowded
-        self.crowded_p = 0.1
+        self.crowded_p = 0.3
         # maximum traffic of jobs in a crowded server
         self.max_crowded_congestion = 15
         # minimum traffic of jobs in a crowded server
@@ -47,8 +47,8 @@ class Parameters:
 
         # self.eval_seeds = [1, 26, 33, 59, 63, 32, 86, 93, 44, 77]
 
-        self.vf_net = [128, 128, 128, 128]
-        self.pi_net = [128, 128, 128, 128]
+        self.vf_net = [256, 256, 256, 256]
+        self.pi_net = [256, 256, 256, 256]
         self.policy_kwargs = {
             "net_arch": [{
                 "vf": self.vf_net,
