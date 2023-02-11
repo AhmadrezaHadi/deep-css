@@ -176,12 +176,14 @@ class Env(gym.Env):
                                  dtype=np.float64)
 
             for idx, serv in enumerate(running_jobs):
-                for key in serv:
-                    for ptr, job in enumerate(serv[key]):
+                ptr = 0
+                for prio in serv:
+                    for job in serv[prio]:
                         srv_works[ptr, idx] += job.remaining_time / \
                             self.pa.max_job_len
                         srv_prios[ptr, idx] += (job.priority+1) / \
                             self.pa.num_prio
+                        ptr += 1
 
             for idx, job in enumerate(job_slot):
                 if job is not None:
