@@ -2,3 +2,4 @@ changes from deepcss-v1:
     - initial server congestion: uniform distribution
     - number of jobs at each timestep: poisson distribution
     - length of jobs: exponential distribution
+    - fixed bugs in the observation of the environment
