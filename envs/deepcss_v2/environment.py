@@ -388,7 +388,7 @@ class Machine:
                     else np.random.randint(1, self.max_uncrowded)
                 if self.avlbl_slots[idx] - work_len < avlbl_slots:
                     continue
-                prio = np.random.randint(0, self.num_prio)
+                prio = np.random.randint(1, self.num_prio)
                 new_job = Job(job_id=len(job_record.record),
                               job_len=work_len,
                               enter_time=0,
