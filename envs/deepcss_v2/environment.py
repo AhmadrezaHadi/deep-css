@@ -303,13 +303,13 @@ class Job:
     remaining_time : remaining time till job finishes.
     """
 
-    def __init__(self, job_len, job_id, enter_time) -> None:
+    def __init__(self, job_len, job_id, enter_time, priority=-1) -> None:
         self.id = job_id
         self.len = job_len
         self.enter_time = enter_time
         self.start_time = -1
         self.finish_time = -1
-        self.priority = -1
+        self.priority = priority
         self.remaining_time = job_len
 
     def __str__(self) -> str:
@@ -391,7 +391,8 @@ class Machine:
                 prio = np.random.randint(0, self.num_prio)
                 new_job = Job(job_id=len(job_record.record),
                               job_len=work_len,
-                              enter_time=0)  # initial state of the environment, thus enter_time = 0
+                              enter_time=0,
+                              priority=prio)  # initial state of the environment, thus enter_time = 0
                 job_record.record[new_job.id] = new_job
                 self.avlbl_slots[idx] -= work_len
                 self.running_jobs[idx][prio].append(new_job)
