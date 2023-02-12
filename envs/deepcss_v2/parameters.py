@@ -7,7 +7,7 @@ class Parameters:
 
         # Simulation length i.e. number of incoming jobs at each simulation
         self.simu_len = 30
-        self.episode_max_length = 150       # Maximum episode length
+        self.episode_max_length = 500       # Maximum episode length
 
         self.num_serv = 3                   # Number of servers
         self.num_wq = 10                    # Number of works in the visible queue
