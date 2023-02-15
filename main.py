@@ -3,6 +3,7 @@ import envs
 from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback, CallbackList
 from stable_baselines3.common.utils import get_schedule_fn, set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
+from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3 import PPO
@@ -75,15 +76,13 @@ def main():
             pass
 
     if args.mode == 'eval':
-        if args.algorithm == 'ppo':
-            if not args.load:
-                print("model path not specified (--load model_path)")
-                exit(0)
-            # eval_env.reset()
-            # model = PPO('MlpPolicy', eval_env).load(args.load, eval_env)
-            # eval_model(model, eval_env, args.iters)
-        elif args.algorithm == 'dqn':
-            pass
+        if not args.load:
+            print("model path not specified (--load model_path)")
+            exit(0)
+        eval_env = gym.make(ENV_ID)
+        model = PPO('MlpPolicy', eval_env).load(args.load, eval_env)
+        evaluate_policy(model, eval_env,
+                        n_eval_episodes=args.iters, deterministic=True)
 
 
 if __name__ == '__main__':
